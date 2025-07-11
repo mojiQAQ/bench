@@ -1,0 +1,210 @@
+# 基于OpenAPI规范的压测配置文件
+# 支持多种压测工具：wrk, hey, artillery, k6
+
+# 服务器配置
+server:
+  base_url: "http://localhost:8080"
+  timeout: 30s
+
+# 压测场景配置
+scenarios:
+  # 健康检查压测
+  health_check:
+    endpoint: "/health"
+    method: "GET"
+    description: "健康检查接口压测"
+    load_pattern:
+      - duration: "30s"
+        connections: 50
+        rate: 1000  # requests per second
+
+  # 传感器数据上报压测
+  sensor_data_upload:
+    endpoint: "/api/sensor-data"
+    method: "POST"
+    description: "传感器数据上报压测"
+    headers:
+      Content-Type: "application/json"
+    payload_templates:
+      - |
+        {
+          "timestamp": "{{.timestamp}}",
+          "device_id": "factory_{{.factory_id}}_device_{{.device_id}}",
+          "metric_name": "{{.metric_name}}",
+          "value": {{.value}},
+          "priority": {{.priority}}
+        }
+    variables:
+      factory_id: ["001", "002", "003", "004", "005"]
+      device_id: ["001", "002", "003", "004", "005", "006", "007", "008", "009", "010"]
+      metric_name: ["temperature", "pressure", "humidity", "vibration", "voltage", "current", "power", "flow_rate"]
+      value: [10.5, 25.3, 45.7, 67.2, 89.1, 95.6, 110.8, 125.4]
+      priority: [1, 2, 3]
+    load_pattern:
+      - duration: "60s"
+        connections: 100
+        rate: 5000
+
+  # 传感器读写操作压测
+  sensor_read_write:
+    endpoint: "/api/sensor-rw"
+    method: "POST"
+    description: "传感器读写操作压测（包含事务）"
+    headers:
+      Content-Type: "application/json"
+    payload_templates:
+      - |
+        {
+          "device_id": "factory_{{.factory_id}}_device_{{.device_id}}",
+          "metric_name": "{{.metric_name}}",
+          "new_value": {{.new_value}},
+          "timestamp": "{{.timestamp}}",
+          "priority": {{.priority}}
+        }
+    variables:
+      factory_id: ["001", "002", "003", "004", "005"]
+      device_id: ["001", "002", "003", "004", "005", "006", "007", "008", "009", "010"]
+      metric_name: ["temperature", "pressure", "humidity", "vibration", "voltage", "current", "power", "flow_rate"]
+      new_value: [15.2, 35.8, 55.4, 75.9, 95.3, 105.7, 125.1, 145.6]  # 包含超过阈值的值
+      priority: [1, 2, 3]
+    load_pattern:
+      - duration: "60s"
+        connections: 50
+        rate: 2000
+
+  # 批量传感器读写压测
+  batch_sensor_read_write:
+    endpoint: "/api/batch-sensor-rw"
+    method: "POST"
+    description: "批量传感器读写操作压测"
+    headers:
+      Content-Type: "application/json"
+    payload_templates:
+      - |
+        {
+          "data": [
+            {
+              "device_id": "factory_001_device_001",
+              "metric_name": "temperature",
+              "new_value": {{.temp_value}},
+              "timestamp": "{{.timestamp}}",
+              "priority": {{.priority1}}
+            },
+            {
+              "device_id": "factory_001_device_002",
+              "metric_name": "pressure",
+              "new_value": {{.pressure_value}},
+              "timestamp": "{{.timestamp}}",
+              "priority": {{.priority2}}
+            },
+            {
+              "device_id": "factory_001_device_003",
+              "metric_name": "voltage",
+              "new_value": {{.voltage_value}},
+              "timestamp": "{{.timestamp}}",
+              "priority": {{.priority3}}
+            }
+          ]
+        }
+    variables:
+      temp_value: [25.5, 85.3, 105.7, 125.2]
+      pressure_value: [101.3, 110.8, 95.2, 88.7]
+      voltage_value: [220.0, 110.5, 380.2, 440.8]
+      priority1: [1, 2, 3]
+      priority2: [1, 2, 3]
+      priority3: [1, 2, 3]
+    load_pattern:
+      - duration: "60s"
+        connections: 30
+        rate: 1000
+
+  # 统计信息查询压测
+  stats_query:
+    endpoint: "/api/stats"
+    method: "GET"
+    description: "统计信息查询压测"
+    load_pattern:
+      - duration: "30s"
+        connections: 20
+        rate: 500
+
+# 混合场景压测
+mixed_scenarios:
+  realistic_workload:
+    description: "模拟真实工作负载"
+    scenarios:
+      - name: "sensor_data_upload"
+        weight: 50  # 50% 流量
+      - name: "sensor_read_write"
+        weight: 30  # 30% 流量
+      - name: "batch_sensor_read_write"
+        weight: 15  # 15% 流量
+      - name: "stats_query"
+        weight: 5   # 5% 流量
+    duration: "300s"  # 5分钟
+    total_connections: 200
+    total_rate: 8000
+
+# 压测工具配置
+tools:
+  wrk:
+    threads: 12
+    duration: "60s"
+    connections: 100
+    script: "test_data.lua"
+    
+  hey:
+    requests: 100000
+    concurrency: 100
+    duration: "60s"
+    
+  artillery:
+    target: "http://localhost:8080"
+    phases:
+      - duration: 60
+        arrivalRate: 100
+        
+  k6:
+    vus: 100
+    duration: "60s"
+    thresholds:
+      http_req_duration:
+        - "p(95)<500"
+      http_req_failed:
+        - "rate<0.01"
+
+# 性能指标阈值
+thresholds:
+  response_time:
+    p50: 50ms   # 50% 请求在50ms内完成
+    p95: 200ms  # 95% 请求在200ms内完成
+    p99: 500ms  # 99% 请求在500ms内完成
+  
+  error_rate:
+    max: 0.1%   # 错误率不超过0.1%
+  
+  throughput:
+    min_rps: 5000  # 最小QPS 5000
+  
+  resource_usage:
+    cpu_max: 80%     # CPU使用率不超过80%
+    memory_max: 2GB  # 内存使用不超过2GB
+    
+# 监控配置
+monitoring:
+  metrics:
+    - response_time
+    - throughput
+    - error_rate
+    - cpu_usage
+    - memory_usage
+    - database_connections
+    - active_goroutines
+  
+  alerts:
+    - condition: "p95_response_time > 500ms"
+      action: "reduce_load"
+    - condition: "error_rate > 1%"
+      action: "stop_test"
+    - condition: "cpu_usage > 90%"
+      action: "alert_admin" 

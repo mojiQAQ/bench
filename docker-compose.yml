@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: bench_mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: bench_server
+      MYSQL_USER: bench_user
+      MYSQL_PASSWORD: bench_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    command: --default-authentication-plugin=mysql_native_password
+    networks:
+      - bench_network
+
+  bench-server:
+    build: .
+    container_name: bench_server
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASSWORD: rootpassword
+      DB_NAME: bench_server
+      PORT: 8080
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mysql
+    networks:
+      - bench_network
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
+
+networks:
+  bench_network:
+    driver: bridge 
