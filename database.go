@@ -39,7 +39,7 @@ func initDatabase(db *sql.DB) error {
 	createDeviceStatusTable := `
 	CREATE TABLE IF NOT EXISTS device_status (
 		device_id VARCHAR(100) PRIMARY KEY,
-		last_value DOUBLE NOT NULL,
+		current_value DOUBLE NOT NULL,
 		last_update DATETIME(3) NOT NULL,
 		alert_count INT DEFAULT 0,
 		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

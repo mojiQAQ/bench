@@ -155,10 +155,10 @@ func (s *Server) sensorReadWriteHandler(w http.ResponseWriter, r *http.Request) 
 
 	// 4. 更新设备状态表（如果存在的话，这里创建一个简单的状态记录）
 	statusQuery := `
-		INSERT INTO device_status (device_id, last_value, last_update, alert_count)
+		INSERT INTO device_status (device_id, current_value, last_update, alert_count)
 		VALUES (?, ?, ?, ?)
 		ON DUPLICATE KEY UPDATE 
-			last_value = VALUES(last_value),
+			current_value = VALUES(current_value),
 			last_update = VALUES(last_update),
 			alert_count = alert_count + VALUES(alert_count)
 	`
@@ -267,10 +267,10 @@ func (s *Server) batchSensorReadWriteHandler(w http.ResponseWriter, r *http.Requ
 	`
 
 	statusQuery := `
-		INSERT INTO device_status (device_id, last_value, last_update, alert_count)
+		INSERT INTO device_status (device_id, current_value, last_update, alert_count)
 		VALUES (?, ?, ?, ?)
 		ON DUPLICATE KEY UPDATE 
-			last_value = VALUES(last_value),
+			current_value = VALUES(current_value),
 			last_update = VALUES(last_update),
 			alert_count = alert_count + VALUES(alert_count)
 	`

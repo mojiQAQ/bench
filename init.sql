@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS time_series_data (
 -- 创建设备状态表（用于传感器读写操作）
 CREATE TABLE IF NOT EXISTS device_status (
     device_id VARCHAR(100) PRIMARY KEY,
-    last_value FLOAT DEFAULT NULL,
+    current_value FLOAT DEFAULT NULL,
     last_update DATETIME(3) NOT NULL,
     alert_count INT DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -38,12 +38,12 @@ INSERT INTO time_series_data (timestamp, device_id, metric_name, value, priority
 ON DUPLICATE KEY UPDATE value = VALUES(value);
 
 -- 插入设备状态测试数据
-INSERT INTO device_status (device_id, last_value, last_update, alert_count) VALUES 
+INSERT INTO device_status (device_id, current_value, last_update, alert_count) VALUES 
 ('factory_001_device_001', 25.5, NOW(), 0),
 ('factory_001_device_002', 101.3, NOW(), 0),
 ('factory_001_device_003', 110.8, NOW(), 1)
 ON DUPLICATE KEY UPDATE 
-    last_value = VALUES(last_value),
+    current_value = VALUES(current_value),
     last_update = VALUES(last_update),
     alert_count = VALUES(alert_count);
 
