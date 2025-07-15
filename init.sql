@@ -3,6 +3,9 @@ CREATE DATABASE IF NOT EXISTS bench_server CHARACTER SET utf8mb4 COLLATE utf8mb4
 
 USE bench_server;
 
+DROP TABLE IF EXISTS time_series_data;
+DROP TABLE IF EXISTS device_status;
+
 -- 创建时序数据表
 CREATE TABLE IF NOT EXISTS time_series_data (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
